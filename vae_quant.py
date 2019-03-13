@@ -288,7 +288,8 @@ def setup_data_loaders(args, use_cuda=False):
     else:
         raise ValueError('Unknown dataset ' + str(args.dataset))
 
-    kwargs = {'num_workers': 4, 'pin_memory': use_cuda}
+    #kwargs = {'num_workers': 1, 'pin_memory': use_cuda}
+    kwargs = {'pin_memory': use_cuda}
     train_loader = DataLoader(dataset=train_set,
         batch_size=args.batch_size, shuffle=True, **kwargs)
     return train_loader
@@ -382,10 +383,10 @@ def main():
     parser.add_argument('--log_freq', default=200, type=int, help='num iterations per log')
     args = parser.parse_args()
 
-    torch.cuda.set_device(args.gpu)
+    # torch.cuda.set_device(args.gpu)
 
     # data loader
-    train_loader = setup_data_loaders(args, use_cuda=True)
+    train_loader = setup_data_loaders(args, use_cuda=False)
 
     # setup the VAE
     if args.dist == 'normal':
@@ -398,7 +399,7 @@ def main():
         prior_dist = FactorialNormalizingFlow(dim=args.latent_dim, nsteps=32)
         q_dist = dist.Normal()
 
-    vae = VAE(z_dim=args.latent_dim, use_cuda=True, prior_dist=prior_dist, q_dist=q_dist,
+    vae = VAE(z_dim=args.latent_dim, use_cuda=False, prior_dist=prior_dist, q_dist=q_dist,
         include_mutinfo=not args.exclude_mutinfo, tcvae=args.tcvae, conv=args.conv, mss=args.mss)
 
     # setup the optimizer
@@ -424,7 +425,7 @@ def main():
             anneal_kl(args, vae, iteration)
             optimizer.zero_grad()
             # transfer to GPU
-            x = x.cuda(async=True)
+            # x = x.cuda(async=True)
             # wrap the mini-batch in a PyTorch Variable
             x = Variable(x)
             # do ELBO gradient and accumulate loss
@@ -432,7 +433,7 @@ def main():
             if utils.isnan(obj).any():
                 raise ValueError('NaN spotted in objective.')
             obj.mean().mul(-1).backward()
-            elbo_running_mean.update(elbo.mean().data[0])
+            elbo_running_mean.update(elbo.mean().item())
             optimizer.step()
 
             # report training diagnostics
