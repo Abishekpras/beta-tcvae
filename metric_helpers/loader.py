@@ -28,15 +28,15 @@ def load_model_and_dataset(checkpt_filename):
     if hasattr(args, 'ncon'):
         # InfoGAN
         model = infogan.Model(
-            args.latent_dim, n_con=args.ncon, n_cat=args.ncat, cat_dim=args.cat_dim, use_cuda=True, conv=args.conv)
+            args.latent_dim, n_con=args.ncon, n_cat=args.ncat, cat_dim=args.cat_dim, use_cuda=False, conv=args.conv)
         model.load_state_dict(state_dict, strict=False)
         vae = vae_quant.VAE(
-            z_dim=args.ncon, use_cuda=True, prior_dist=prior_dist, q_dist=q_dist, conv=args.conv)
+            z_dim=args.ncon, use_cuda=False, prior_dist=prior_dist, q_dist=q_dist, conv=args.conv)
         vae.encoder = model.encoder
         vae.decoder = model.decoder
     else:
         vae = vae_quant.VAE(
-            z_dim=args.latent_dim, use_cuda=True, prior_dist=prior_dist, q_dist=q_dist, conv=args.conv)
+            z_dim=args.latent_dim, use_cuda=False, prior_dist=prior_dist, q_dist=q_dist, conv=args.conv)
         vae.load_state_dict(state_dict, strict=False)
 
     # dataset loader

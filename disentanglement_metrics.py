@@ -31,7 +31,7 @@ def estimate_entropies(qz_samples, qz_params, q_dist, n_samples=10000, weights=N
 
     # Only take a sample subset of the samples
     if weights is None:
-        qz_samples = qz_samples.index_select(1, Variable(torch.randperm(qz_samples.size(1))[:n_samples].cuda()))
+        qz_samples = qz_samples.index_select(1, Variable(torch.randperm(qz_samples.size(1))[:n_samples]))
     else:
         sample_inds = torch.multinomial(weights, n_samples, replacement=True)
         qz_samples = qz_samples.index_select(1, sample_inds)
@@ -46,7 +46,7 @@ def estimate_entropies(qz_samples, qz_params, q_dist, n_samples=10000, weights=N
     else:
         weights = torch.log(weights.view(N, 1, 1) / weights.sum())
 
-    entropies = torch.zeros(K).cuda()
+    entropies = torch.zeros(K)
 
     pbar = tqdm(total=S)
     k = 0
@@ -81,11 +81,11 @@ def mutual_info_metric_shapes(vae, shapes_dataset):
     n = 0
     for xs in dataset_loader:
         batch_size = xs.size(0)
-        xs = Variable(xs.view(batch_size, 1, 64, 64).cuda(), volatile=True)
+        xs = Variable(xs.view(batch_size, 1, 64, 64), volatile=True)
         qz_params[n:n + batch_size] = vae.encoder.forward(xs).view(batch_size, vae.z_dim, nparams).data
         n += batch_size
 
-    qz_params = Variable(qz_params.view(3, 6, 40, 32, 32, K, nparams).cuda())
+    qz_params = Variable(qz_params.view(3, 6, 40, 32, 32, K, nparams))
     qz_samples = vae.q_dist.sample(params=qz_params)
 
     print('Estimating marginal entropies.')
@@ -164,11 +164,11 @@ def mutual_info_metric_faces(vae, shapes_dataset):
     n = 0
     for xs in dataset_loader:
         batch_size = xs.size(0)
-        xs = Variable(xs.view(batch_size, 1, 64, 64).cuda(), volatile=True)
+        xs = Variable(xs.view(batch_size, 1, 64, 64), volatile=True)
         qz_params[n:n + batch_size] = vae.encoder.forward(xs).view(batch_size, vae.z_dim, nparams).data
         n += batch_size
 
-    qz_params = Variable(qz_params.view(50, 21, 11, 11, K, nparams).cuda())
+    qz_params = Variable(qz_params.view(50, 21, 11, 11, K, nparams))
     qz_samples = vae.q_dist.sample(params=qz_params)
 
     print('Estimating marginal entropies.')
@@ -229,8 +229,7 @@ if __name__ == '__main__':
     parser.add_argument('--save', type=str, default='.')
     args = parser.parse_args()
 
-    if args.gpu != 0:
-        torch.cuda.set_device(args.gpu)
+    #if args.gpu != 0: torch.cuda.set_device(args.gpu)
     vae, dataset, cpargs = load_model_and_dataset(args.checkpt)
     metric, marginal_entropies, cond_entropies = eval('mutual_info_metric_' + cpargs.dataset)(vae, dataset)
     torch.save({

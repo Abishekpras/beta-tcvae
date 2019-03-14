@@ -28,15 +28,15 @@ def estimate_entropies(qz_samples, qz_params, q_dist):
     """
 
     # Only take a sample subset of the samples
-    qz_samples = qz_samples.index_select(1, Variable(torch.randperm(qz_samples.size(1))[:10000].cuda()))
+    qz_samples = qz_samples.index_select(1, Variable(torch.randperm(qz_samples.size(1))[:10000]))
 
     K, S = qz_samples.size()
     N, _, nparams = qz_params.size()
     assert(nparams == q_dist.nparams)
     assert(K == qz_params.size(1))
 
-    marginal_entropies = torch.zeros(K).cuda()
-    joint_entropy = torch.zeros(1).cuda()
+    marginal_entropies = torch.zeros(K)
+    joint_entropy = torch.zeros(1)
 
     pbar = tqdm(total=S)
     k = 0
@@ -117,7 +117,7 @@ def elbo_decomposition(vae, dataset_loader):
     logpx = 0
     for xs in dataset_loader:
         batch_size = xs.size(0)
-        xs = Variable(xs.view(batch_size, -1, 64, 64).cuda(), volatile=True)
+        xs = Variable(xs.view(batch_size, -1, 64, 64), volatile=True)
         z_params = vae.encoder.forward(xs).view(batch_size, K, nparams)
         qz_params[n:n + batch_size] = z_params.data
         n += batch_size
@@ -130,7 +130,7 @@ def elbo_decomposition(vae, dataset_loader):
     # Reconstruction term
     logpx = logpx / (N * S)
 
-    qz_params = Variable(qz_params.cuda(), volatile=True)
+    qz_params = Variable(qz_params, volatile=True)
 
     print('Sampling from q(z).')
     # sample S times from each marginal q(z_j|x_n)
@@ -211,15 +211,15 @@ if __name__ == '__main__':
         elif args.dist == 'flow':
             prior_dist = flows.FactorialNormalizingFlow(dim=args.latent_dim, nsteps=32)
             q_dist = dist.Normal()
-        vae = VAE(z_dim=args.latent_dim, use_cuda=True, prior_dist=prior_dist, q_dist=q_dist, conv=args.conv)
+        vae = VAE(z_dim=args.latent_dim, use_cuda=False, prior_dist=prior_dist, q_dist=q_dist, conv=args.conv)
         vae.load_state_dict(state_dict, strict=False)
         vae.eval()
 
         # dataset loader
-        loader = setup_data_loaders(args, use_cuda=True)
+        loader = setup_data_loaders(args, use_cuda=False)
         return vae, loader
 
-    torch.cuda.set_device(args.gpu)
+    #torch.cuda.set_device(args.gpu)
     vae, dataset_loader = load_model_and_dataset(args.checkpt)
     logpx, dependence, information, dimwise_kl, analytical_cond_kl, marginal_entropies, joint_entropy = \
         elbo_decomposition(vae, dataset_loader)

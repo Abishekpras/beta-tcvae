@@ -28,7 +28,7 @@ def plot_vs_gt_shapes(vae, shapes_dataset, save, z_inds=None):
     n = 0
     for xs in dataset_loader:
         batch_size = xs.size(0)
-        xs = Variable(xs.view(batch_size, 1, 64, 64).cuda(), volatile=True)
+        xs = Variable(xs.view(batch_size, 1, 64, 64), volatile=True)
         qz_params[n:n + batch_size] = vae.encoder.forward(xs).view(batch_size, vae.z_dim, nparams).data
         n += batch_size
 
@@ -117,7 +117,7 @@ def plot_vs_gt_faces(vae, faces_dataset, save, z_inds=None):
     n = 0
     for xs in dataset_loader:
         batch_size = xs.size(0)
-        xs = Variable(xs.view(batch_size, 1, 64, 64).cuda(), volatile=True)
+        xs = Variable(xs.view(batch_size, 1, 64, 64), volatile=True)
         qz_params[n:n + batch_size] = vae.encoder.forward(xs).view(batch_size, vae.z_dim, nparams).data
         n += batch_size
 
@@ -221,7 +221,7 @@ if __name__ == '__main__':
         elif args.dist == 'flow':
             prior_dist = flows.FactorialNormalizingFlow(dim=args.latent_dim, nsteps=4)
             q_dist = dist.Normal()
-        vae = VAE(z_dim=args.latent_dim, use_cuda=True, prior_dist=prior_dist, q_dist=q_dist, conv=args.conv)
+        vae = VAE(z_dim=args.latent_dim, use_cuda=False, prior_dist=prior_dist, q_dist=q_dist, conv=args.conv)
         vae.load_state_dict(state_dict, strict=False)
 
         # dataset loader
@@ -229,7 +229,7 @@ if __name__ == '__main__':
         return vae, loader, args
 
     z_inds = list(map(int, args.zs.split(','))) if args.zs is not None else None
-    torch.cuda.set_device(args.gpu)
+    #torch.cuda.set_device(args.gpu)
     vae, dataset_loader, cpargs = load_model_and_dataset(args.checkpt)
     if args.elbo_decomp:
         elbo_decomposition(vae, dataset_loader)
